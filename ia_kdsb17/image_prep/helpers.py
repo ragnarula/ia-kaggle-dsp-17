@@ -2,8 +2,9 @@ import os
 import dicom
 import cv2
 import numpy as np
+import scipy.ndimage
 import matplotlib.pyplot as plt
-from itertools import chain, starmap
+from itertools import chain, starmap, tee
 
 
 def flatmap(f, items):
@@ -64,6 +65,14 @@ def mean_normalize(img):
     return norm
 
 
+def get_scaler(x, ord):
+
+    def scale(img):
+        return scipy.ndimage.zoom(img, x, order=ord)
+
+    return scale
+
+
 def apply_to_images(f):
     def applier(path, patient, pixels):
         mapped = map(f, pixels)
@@ -87,12 +96,23 @@ def patient_averaged_pixels(path, patient, pixels):
     return path, patient, sum_image
 
 
-def drop_path(path, patient, pixels):
+def drop_path(_, patient, pixels):
     return patient, pixels
 
 
-def patient_average(dir):
-    patients = image_dirs(dir)
+def cropped_averaged_scaled(image_dir, scale, labels_df):
+    patients = image_dirs(image_dir)
+
+    patients, p2 = tee(patients)
+    train_size = 0
+    test_size = 0
+
+    for p in p2:
+        if p[1] in labels_df.index:
+            train_size += 1
+        else:
+            test_size += 1
+
     images = starmap(patient_image, patients)
     dicoms = starmap(patient_dicoms, images)
     dicoms = starmap(patient_z_pixels, dicoms)
@@ -101,12 +121,16 @@ def patient_average(dir):
 
     dicoms = starmap(apply_to_images(drop_first), dicoms)
     dicoms = starmap(apply_to_images(zero_border), dicoms)
-    # dicoms = starmap(apply_to_images(mean_normalize), dicoms)
 
     dicoms = starmap(patient_averaged_pixels, dicoms)
+    dicoms = starmap(lambda p, pp, i: (p, pp, get_scaler(scale, 2)(i)), dicoms)
 
     dicoms = starmap(drop_path, dicoms)
-    return dicoms
+
+    train = filter(lambda x: x[0] in labels_df.index, dicoms)
+    test = filter(lambda x: x[0] not in labels_df.index, dicoms)
+
+    return train_size, train, test_size, test
 
 # for testing...
 if __name__ == "__main__":
