@@ -1,10 +1,9 @@
 import argparse
-import tempfile
 import errno
 import logging
-import tensorflow as tf
-import numpy as np
-from image_prep.helpers import patient_average
+import tempfile
+
+from ia_kdsb17.image_prep.helpers import patient_average
 
 logger = logging.getLogger(__name__)
 
