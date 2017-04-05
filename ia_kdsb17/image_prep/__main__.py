@@ -40,13 +40,13 @@ train_labels = open_memmap(labels_file, dtype='int', mode='w+', shape=(train_siz
 test_dat = open_memmap(test_file, dtype='float32', mode='w+', shape=(test_size, h, w))
 
 for i, image in enumerate(train):
-    if i % 100 == 0 | i == 0:
+    if i % 100 == 0 or i == 0:
         print("Writing training sample {}".format(i))
     train_dat[i, :, :] = image[1]
     train_labels[i] = labels.get_value(image[0], 'cancer')
 
 for i, image in enumerate(test):
-    if i % 100 == 0 | i == 0:
+    if i % 100 == 0 or i == 0:
         print("Writing test sample {}".format(i))
     test_dat[i, :, :] = image[1]
 
