@@ -44,9 +44,8 @@ model.add(Dense(2, activation='softmax'))
 sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd)
 
-model.fit(train_data[0:4, :, :], labels[0:4], batch_size=128, epochs=10)
+model.fit(train_data, labels, batch_size=128, epochs=10)
 
-predictions = model.predict(train_data[4:8, :, :])
+predictions = model.predict(test_data)
 
 print(predictions)
-print(labels[4:8])
