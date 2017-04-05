@@ -15,7 +15,7 @@ parser.add_argument("output_dir", help="Dir to write the numpy arrays")
 args = parser.parse_args()
 
 if not is_writeable(args.output_dir):
-    print('{} is not writeble'.format(args.data_dir))
+    print('{} is not writeable'.format(args.data_dir))
     exit(1)
 
 labels = pd.read_csv(args.labels_csv, index_col=0)

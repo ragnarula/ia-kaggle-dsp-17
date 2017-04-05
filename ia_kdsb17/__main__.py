@@ -62,16 +62,22 @@ else:
     print('Results path already existed')
 
 
-def to_indexes(values):
-    return list(map(lambda x: x.index(1), values.tolist()))
+def to_probability_of_cancer(values):
+    return list(map(lambda x: x[1], values.tolist()))
 
-val_results_df = pd.DataFrame({'actual': to_indexes(y_val), 'predicted': to_indexes(val_predictions)})
-val_results_df.to_csv(os.path.join(results_dir, "validation_results.csv"))
+y_val_prob = to_probability_of_cancer(y_val)
+pred_val_prob = to_probability_of_cancer(val_predictions)
 
-test_ids['prediction'] = to_indexes(test_predictions)
+val_results_df = pd.DataFrame({'actual': y_val_prob,
+                               'predicted': pred_val_prob})
+
+val_results_df.to_csv(os.path.join(results_dir, "validation_results.csv"), index=False)
+
+test_ids['prediction'] = to_probability_of_cancer(test_predictions)
 test_ids.to_csv(os.path.join(results_dir, "test_predictions.csv"))
 
 model.save(os.path.join(results_dir, "model.h5"))
 
 print(val_results_df.head())
-print("Validation Accuracy: {}".format(accuracy))
+print("Validation score: {}".format(config.validation_function(y_val_prob, pred_val_prob)))
+print("Results written to {}".format(results_dir))
