@@ -23,14 +23,6 @@ labels = pd.read_csv(args.labels_csv, index_col=0)
 train_size, train, test_size, test = imhelpers.cropped_averaged_scaled(args.data_dir, 0.25, labels)
 print(train_size, test_size)
 one_patient = next(train)
-# print(one_patient)
-# fig = plt.figure()
-#
-# one_image = one_patient[1]
-# # one_image.shape
-# plt.imshow(one_image)
-# plt.show()
-
 
 print(one_patient[1].shape)
 
@@ -39,10 +31,6 @@ h, w = one_patient[1].shape
 train_file = os.path.join(args.output_dir, "train.npy")
 labels_file = os.path.join(args.output_dir, "labels.npy")
 test_file = os.path.join(args.output_dir, "test.npy")
-
-# train_dat = np.memmap(train_file, dtype='float32', mode='w+', shape=(train_size, h, w))
-# train_labels = np.memmap(labels_file, dtype='int', mode='w+', shape=(train_size,))
-# test_dat = np.memmap(test_file, dtype='float32', mode='w+', shape=(test_size, h, w))
 
 train_dat = open_memmap(train_file, dtype='float32', mode='w+', shape=(train_size, h, w))
 train_labels = open_memmap(labels_file, dtype='int', mode='w+', shape=(train_size,))

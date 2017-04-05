@@ -114,6 +114,7 @@ def cropped_averaged_scaled(image_dir, scale, labels_df):
             test_size += 1
 
     images = starmap(patient_image, patients)
+    images = starmap(lambda path, patient, im_list: (path, patient, filter(lambda x: len(x) > 0, im_list)), images)
     dicoms = starmap(patient_dicoms, images)
     dicoms = starmap(patient_z_pixels, dicoms)
     dicoms = starmap(patient_z_cropped_pixels, dicoms)
@@ -121,27 +122,26 @@ def cropped_averaged_scaled(image_dir, scale, labels_df):
 
     dicoms = starmap(apply_to_images(drop_first), dicoms)
     dicoms = starmap(apply_to_images(zero_border), dicoms)
-
     dicoms = starmap(patient_averaged_pixels, dicoms)
     dicoms = starmap(lambda p, pp, i: (p, pp, get_scaler(scale, 2)(i)), dicoms)
 
     dicoms = starmap(drop_path, dicoms)
-
-    train = filter(lambda x: x[0] in labels_df.index, dicoms)
-    test = filter(lambda x: x[0] not in labels_df.index, dicoms)
+    train, test = tee(dicoms)
+    train = filter(lambda x: x[0] in labels_df.index, train)
+    test = filter(lambda x: x[0] not in labels_df.index, test)
 
     return train_size, train, test_size, test
 
 # for testing...
-if __name__ == "__main__":
-    dicoms = patient_average("/Users/rag/code/ragnarula/kaggle-2017/data")
-    one_patient = next(dicoms)
-    print(one_patient)
-    fig = plt.figure()
-    # for image in one_patient[2]:
-    #     print(image)
-    #     plt.imshow(image, cmap=plt.cm.bone)
-    #     plt.show()
-
-    plt.imshow(one_patient[1], cmap=plt.cm.bone)
-    plt.show()
+# if __name__ == "__main__":
+#     dicoms = patient_average("/Users/rag/code/ragnarula/kaggle-2017/data")
+#     one_patient = next(dicoms)
+#     print(one_patient)
+#     fig = plt.figure()
+#     # for image in one_patient[2]:
+#     #     print(image)
+#     #     plt.imshow(image, cmap=plt.cm.bone)
+#     #     plt.show()
+#
+#     plt.imshow(one_patient[1], cmap=plt.cm.bone)
+#     plt.show()
