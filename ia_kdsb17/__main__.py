@@ -20,6 +20,7 @@ test_data = np.load(args.test_data, mmap_mode='r')
 labels = np.load(args.labels, mmap_mode='r')
 
 l, rows, cols = train_data.shape
+print(l, rows, cols)
 
 train_data = train_data[..., np.newaxis]
 train_data = train_data.reshape((l, rows, cols, 1))
