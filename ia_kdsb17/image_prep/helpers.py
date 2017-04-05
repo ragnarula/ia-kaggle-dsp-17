@@ -1,10 +1,8 @@
 import os
 import dicom
-import cv2
 import numpy as np
 import scipy.ndimage
-import matplotlib.pyplot as plt
-from itertools import chain, starmap, tee
+from itertools import chain, starmap
 
 
 def flatmap(f, items):
@@ -100,37 +98,7 @@ def drop_path(_, patient, pixels):
     return patient, pixels
 
 
-def cropped_averaged_scaled(image_dir, scale, labels_df):
-    patients = image_dirs(image_dir)
 
-    patients, p2 = tee(patients)
-    train_size = 0
-    test_size = 0
-
-    for p in p2:
-        if p[1] in labels_df.index:
-            train_size += 1
-        else:
-            test_size += 1
-
-    images = starmap(patient_image, patients)
-    images = starmap(lambda path, patient, im_list: (path, patient, filter(lambda x: len(x) > 0, im_list)), images)
-    dicoms = starmap(patient_dicoms, images)
-    dicoms = starmap(patient_z_pixels, dicoms)
-    dicoms = starmap(patient_z_cropped_pixels, dicoms)
-    dicoms = starmap(patient_z_pixels_sorted, dicoms)
-
-    dicoms = starmap(apply_to_images(drop_first), dicoms)
-    dicoms = starmap(apply_to_images(zero_border), dicoms)
-    dicoms = starmap(patient_averaged_pixels, dicoms)
-    dicoms = starmap(lambda p, pp, i: (p, pp, get_scaler(scale, 2)(i)), dicoms)
-
-    dicoms = starmap(drop_path, dicoms)
-    train, test = tee(dicoms)
-    train = filter(lambda x: x[0] in labels_df.index, train)
-    test = filter(lambda x: x[0] not in labels_df.index, test)
-
-    return train_size, train, test_size, test
 
 # for testing...
 # if __name__ == "__main__":

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python -m ia_kdsb17.image_prep "$@"
