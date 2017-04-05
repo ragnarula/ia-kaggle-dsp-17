@@ -64,7 +64,7 @@ def get_model(input_shape, **kwargs):
 
 model_params = {
     'batch_size': 128,
-    'epochs': 1,
+    'epochs': 100,
     'shuffle': True
 }
 
