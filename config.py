@@ -5,20 +5,12 @@ from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D, Conv1D
 from keras.optimizers import SGD
 from sklearn.metrics import log_loss
+import ia_kdsb17.image_prep.unet as unet
+import os
 
 
 def cropped_averaged_scaled(image_dir, labels_df, **kwargs):
     patients = imhelpers.image_dirs(image_dir)
-
-    patients, p2 = tee(patients)
-    train_size = 0
-    test_size = 0
-
-    for p in p2:
-        if p[1] in labels_df.index:
-            train_size += 1
-        else:
-            test_size += 1
 
     images = starmap(imhelpers.patient_image, patients)
     images = starmap(lambda path, patient, im_list: (path, patient, filter(lambda x: len(x) > 0, im_list)), images)
@@ -37,7 +29,35 @@ def cropped_averaged_scaled(image_dir, labels_df, **kwargs):
     train = filter(lambda x: x[0] in labels_df.index, train)
     test = filter(lambda x: x[0] not in labels_df.index, test)
 
-    return train_size, train, test_size, test
+    return train, test
+
+
+def nodules_unet(image_dir, labels_df, **kwargs):
+    patients = imhelpers.image_dirs(image_dir)
+    images = starmap(imhelpers.patient_image, patients)
+    images = starmap(lambda path, patient, im_list: (path, patient, filter(lambda x: len(x) > 0, im_list)), images)
+    dicoms = starmap(imhelpers.patient_dicoms, images)
+    dicoms = starmap(imhelpers.patient_z_pixels, dicoms)
+    dicoms = starmap(imhelpers.patient_z_pixels_sorted, dicoms)
+
+    dicoms = starmap(imhelpers.apply_to_images(imhelpers.drop_first), dicoms)
+    dicoms = starmap(imhelpers.apply_to_images(unet.standardize), dicoms)
+    dicoms = starmap(imhelpers.apply_to_images(unet.extract_roi), dicoms)
+    dicoms = starmap(imhelpers.filter_images(unet.filter_good), dicoms)
+    dicoms = imhelpers.flat_starmap(imhelpers.patient_pixels_list, dicoms)
+    dicoms = starmap(unet.get_nodule_mask_extractor(kwargs['weights_file']), dicoms)
+
+    dicoms = starmap(unet.extract_region_from_mask, dicoms)
+
+    dicoms = filter(lambda x: x[3], dicoms)
+
+    dicoms = starmap(imhelpers.drop_path, dicoms)
+
+    train, test = tee(dicoms)
+    train = filter(lambda x: x[0] in labels_df.index, train)
+    test = filter(lambda x: x[0] not in labels_df.index, test)
+
+    return train, test
 
 
 def get_model(input_shape, **kwargs):
@@ -77,9 +97,12 @@ model_params = {
 
 model_function = get_model
 
+weights_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'unet.hdf5')
+
 image_params = {
-    'scale': 0.25
+    'scale': 0.25,
+    'weights_file': weights_file
 }
 
-image_prep_function = cropped_averaged_scaled
+image_prep_function = nodules_unet
 validation_function = log_loss

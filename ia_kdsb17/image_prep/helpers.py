@@ -5,8 +5,8 @@ import scipy.ndimage
 from itertools import chain, starmap
 
 
-def flatmap(f, items):
-    return chain.from_iterable(map(f, items))
+def flat_starmap(f, items):
+    return chain.from_iterable(starmap(f, items))
 
 
 # (path, patient_id)
@@ -48,6 +48,11 @@ def patient_z_pixels_sorted(path, patient, z_dicoms):
     return path, patient, slices
 
 
+def patient_pixels_list(path, patient, z_dicoms):
+    # print(len(list(z_dicoms)))
+    return map(lambda x: (path, patient, x[1]), z_dicoms)
+
+
 def zero_border(img):
     img[img == -2000] = 0
     return img
@@ -69,6 +74,13 @@ def get_scaler(x, ord):
         return scipy.ndimage.zoom(img, x, order=ord)
 
     return scale
+
+
+def filter_images(f):
+    def filterer(path, patient, pixels):
+        filtered = filter(f, pixels)
+        return path, patient, filtered
+    return filterer
 
 
 def apply_to_images(f):
