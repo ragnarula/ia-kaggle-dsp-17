@@ -25,6 +25,7 @@ image_params = config.image_params
 stream = config.image_prep_function(args.data_dir, labels, **image_params)
 
 one_patient = next(stream)
+idd_len = len(one_patient[1])
 
 c, h, w = one_patient[2].shape
 print("Image channels: {} rows: {} cols: {}".format(c, h, w))
@@ -41,13 +42,15 @@ id_atom = tables.StringAtom(len(one_patient[1]))
 train_data = image_data_table.create_earray(image_data_table.root, 'train_data', atom=image_atom, shape=(0, 1, h, w))
 train_labels = image_data_table.create_earray(image_data_table.root, 'train_labels', atom=int_atom, shape=(0, 2))
 test_data = image_data_table.create_earray(image_data_table.root, 'test_data', atom=image_atom, shape=(0, 1, h, w))
-test_ids = image_data_table.create_earray(image_data_table.root, 'test_ids', atom=id_atom, shape=(0,))
+test_ids = image_data_table.create_earray(image_data_table.root, 'test_ids', atom=id_atom, shape=(0, idd_len))
 
 test_sample = 1
 train_sample = 1
 
 for item in stream:
     dataset, idd, image = item
+    id_chars = np.chararray(shape=(1, len(idd)))
+    id_chars[:] = idd
 
     if dataset == 'train':
         print("Writing training sample {}".format(train_sample), end='\r')
@@ -64,7 +67,7 @@ for item in stream:
         print("Writing test sample {}".format(test_sample), end='\r')
 
         test_data.append(image.reshape(1, c, h, w))
-        test_ids.append(idd)
+        test_ids.append(id_chars)
 
 print("", flush=True)
 

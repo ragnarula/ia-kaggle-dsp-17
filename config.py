@@ -53,6 +53,29 @@ def unet_roi(image_dir, labels_df, **kwargs):
     return stream
 
 
+def unet_nodules(image_dir, labels_df, **kwargs):
+    stream = imhelpers.image_dirs(image_dir)
+    stream = starmap(imhelpers.list_images_for_patient, stream)
+    stream = starmap(lambda path, patient, im_list: (path, patient, filter(lambda x: len(x) > 0, im_list)), stream)
+    stream = starmap(imhelpers.load_dicoms, stream)
+    stream = starmap(lambda p, idd, d: (p, idd, imhelpers.dicom_to_z_pixel(d)), stream)
+    stream = starmap(lambda p, idd, d: (p, idd, imhelpers.sort_images(d)), stream)
+    stream = imhelpers.flat_starmap(lambda p, idd, z_ims: starmap(lambda z, im: (p, idd, im), z_ims), stream)
+    stream = starmap(lambda p, idd, im: (p, idd, unet.standardize(im)), stream)
+    stream = starmap(lambda p, idd, im: (p, idd, unet.extract_roi(im)), stream)
+    stream = filter(lambda x: x[2] is not None, stream)
+    stream = starmap(lambda p, idd, im: (p, idd, unet.get_nodule_mask_extractor(kwargs['weights_file'])(im)), stream)
+    stream = filter(lambda x: x[2][1] is not None, stream)
+    stream = starmap(lambda p, idd, im_msk: (p, idd, im_msk[0] * im_msk[1].reshape(512, 512)), stream)
+    stream = starmap(lambda p, idd, im: (p, idd, resize(im, [256, 256], mode='constant')), stream)
+
+    stream = starmap(lambda p, idd, im: (p, idd, im.reshape(1, im.shape[0], im.shape[1])), stream)
+
+    stream = starmap(lambda p, idd, im: ("train", idd, im) if idd in labels_df.index else ("test", idd, im), stream)
+
+    return stream
+
+
 def get_model(input_shape, **kwargs):
     K.set_image_dim_ordering('th')
     model = Sequential()
@@ -98,5 +121,5 @@ image_params = {
     'weights_file': weights_file
 }
 
-image_prep_function = unet_roi
+image_prep_function = unet_nodules
 validation_function = log_loss

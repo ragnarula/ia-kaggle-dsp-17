@@ -173,14 +173,12 @@ def get_unet(img_rows, img_cols):
 
 def get_nodule_mask_extractor(weights_file):
 
-    def extract_nodule_masks(path, patient, image):
+    def extract_nodule_masks(image):
         rows, cols = image.shape
-        # print('haha', rows, cols)
         model = get_unet(rows, cols)
         model.load_weights(weights_file)
-        mask = model.predict(image.reshape(1, 1, rows, cols))[0]
-        mask = np.zeros((rows, cols))
-        return path, patient, image, mask
+        mask = model.predict(image.reshape(1, 1, rows, cols))
+        return image, mask
 
     return extract_nodule_masks
 
