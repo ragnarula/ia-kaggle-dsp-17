@@ -5,7 +5,6 @@ import numpy as np
 import config
 import tables
 from itertools import chain
-from numpy.lib.format import open_memmap
 from ia_kdsb17.common import is_writeable
 
 parser = argparse.ArgumentParser()
@@ -42,7 +41,7 @@ test_id_file = os.path.join(args.output_dir, "test_id.csv")
 
 tables_file = os.path.join(args.output_dir, 'image_data.h5')
 
-image_data_table = tables.open_file(tables_file, mode='w+')
+image_data_table = tables.open_file(tables_file, mode='w')
 image_atom = tables.Float32Atom()
 int_atom = tables.Int8Atom()
 

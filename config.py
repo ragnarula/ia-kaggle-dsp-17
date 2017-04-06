@@ -32,7 +32,7 @@ def cropped_averaged_scaled(image_dir, labels_df, **kwargs):
     return train, test
 
 
-def nodules_unet(image_dir, labels_df, **kwargs):
+def unet_roi(image_dir, labels_df, **kwargs):
     patients = imhelpers.image_dirs(image_dir)
     images = starmap(imhelpers.patient_image, patients)
     images = starmap(lambda path, patient, im_list: (path, patient, filter(lambda x: len(x) > 0, im_list)), images)
@@ -45,11 +45,12 @@ def nodules_unet(image_dir, labels_df, **kwargs):
     dicoms = starmap(imhelpers.apply_to_images(unet.extract_roi), dicoms)
     dicoms = starmap(imhelpers.filter_images(unet.filter_good), dicoms)
     dicoms = imhelpers.flat_starmap(imhelpers.patient_pixels_list, dicoms)
-    dicoms = starmap(unet.get_nodule_mask_extractor(kwargs['weights_file']), dicoms)
 
-    dicoms = starmap(unet.extract_region_from_mask, dicoms)
-
-    dicoms = filter(lambda x: x[3], dicoms)
+    # dicoms = starmap(unet.get_nodule_mask_extractor(kwargs['weights_file']), dicoms)
+    #
+    # dicoms = starmap(unet.extract_region_from_mask, dicoms)
+    #
+    # dicoms = filter(lambda x: x[3], dicoms)
 
     dicoms = starmap(imhelpers.drop_path, dicoms)
 
@@ -104,5 +105,5 @@ image_params = {
     'weights_file': weights_file
 }
 
-image_prep_function = nodules_unet
+image_prep_function = unet_roi
 validation_function = log_loss

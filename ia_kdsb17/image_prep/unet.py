@@ -181,6 +181,13 @@ def get_nodule_mask_extractor(weights_file):
 
 def extract_region_from_mask(path, patient, image, mask):
     print(mask.shape)
+    labels = measure.label(mask)
+    regions = measure.regionprops(labels)
+
+    if len(regions) == 0:
+        print("No regions found")
+        return path, patient, image, False
+
     img_masked = image * mask
     new_mean = np.mean(img_masked[mask > 0])
     new_std = np.std(img_masked[mask > 0])
@@ -189,17 +196,12 @@ def extract_region_from_mask(path, patient, image, mask):
     img_masked = img_masked - new_mean
     img_masked = img_masked / new_std
 
-    labels = measure.label(mask)
-    regions = measure.regionprops(labels)
-
     min_row = 512
     max_row = 0
     min_col = 512
     max_col = 0
 
-    if len(regions) == 0:
-        print("No regions found")
-        return path, patient, image, False
+
 
     for prop in regions:
         B = prop.bbox
