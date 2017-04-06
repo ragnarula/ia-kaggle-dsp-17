@@ -7,6 +7,7 @@ import tables
 from itertools import chain
 from ia_kdsb17.common import is_writeable
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("data_dir", help="Input data dir")
 parser.add_argument("labels_csv", help="Labels CSV file")

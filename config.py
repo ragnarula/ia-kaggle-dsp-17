@@ -8,6 +8,7 @@ from sklearn.metrics import log_loss
 import ia_kdsb17.image_prep.unet as unet
 import os
 from keras import backend as K
+from skimage.transform import resize
 
 
 # def cropped_averaged_scaled(image_dir, labels_df, **kwargs):
@@ -45,6 +46,7 @@ def unet_roi(image_dir, labels_df, **kwargs):
     stream = starmap(lambda p, idd, im: (p, idd, unet.standardize(im)), stream)
     stream = starmap(lambda p, idd, im: (p, idd, unet.extract_roi(im)), stream)
     stream = filter(lambda x: x[2] is not None, stream)
+    stream = starmap(lambda p, idd, im: (p, idd, resize(im, [256, 256], mode='constant')), stream)
     stream = starmap(lambda p, idd, im: (p, idd, im.reshape(1, im.shape[0], im.shape[1])), stream)
     stream = starmap(lambda p, idd, im: ("train", idd, im) if idd in labels_df.index else ("test", idd, im), stream)
 
