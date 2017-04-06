@@ -19,19 +19,21 @@ def standardize(img):
 
 
 def extract_roi(img):
-    middle = img[100:400, 100:400]
-    mean = np.mean(middle)
+    rows, cols = img.shape
+    mean = np.mean(img)
     max = np.max(img)
     min = np.min(img)
+
     img[img == max] = mean
     img[img == min] = mean
-    kmeans = KMeans(n_clusters=2).fit(np.reshape(middle, [np.prod(middle.shape), 1]))
+
+    kmeans = KMeans(n_clusters=2).fit(np.reshape(img, [np.prod(img.shape), 1]))
     centers = sorted(kmeans.cluster_centers_.flatten())
 
     threshold = np.mean(centers)
     thresh_img = np.where(img < threshold, 1.0, 0.0)  # threshold the image
 
-    eroded = morphology.erosion(thresh_img, np.ones([2, 2]))
+    eroded = morphology.erosion(thresh_img, np.ones([3, 3]))
     dilation = morphology.dilation(eroded, np.ones([10, 10]))
 
     labels = measure.label(dilation)
@@ -39,16 +41,20 @@ def extract_roi(img):
 
     regions = measure.regionprops(labels)
     good_labels = []
+
     for prop in regions:
         B = prop.bbox
         if B[2] - B[0] < 475 and B[3] - B[1] < 475 and B[0] > 40 and B[2] < 472:
             good_labels.append(prop.label)
 
-    mask = np.ndarray([512, 512], dtype=np.int8)
+    mask = np.ndarray([rows, cols], dtype=np.int8)
     mask[:] = 0
 
     for N in good_labels:
         mask = mask + np.where(labels == N, 1, 0)
+
+    if (mask == 1).sum() < 26214:
+        return None
 
     mask = morphology.dilation(mask, np.ones([10, 10]))  # one last dilation
 
@@ -88,7 +94,7 @@ def extract_roi(img):
     maskc = mask[min_row:max_row, min_col:max_col]
 
     if max_row - min_row < 5 or max_col - min_col < 5:  # skipping all images with no god regions
-        return False, np.array(1)
+        return None
     else:
         mean = np.mean(imgc)
         imgc = imgc - mean
@@ -97,7 +103,7 @@ def extract_roi(img):
         imgc = imgc / (max - min)
         new_img = resize(imgc, [512, 512], mode='constant')
 
-        return True, new_img
+        return new_img
 
 
 def filter_good(flag_img):
@@ -200,8 +206,6 @@ def extract_region_from_mask(path, patient, image, mask):
     max_row = 0
     min_col = 512
     max_col = 0
-
-
 
     for prop in regions:
         B = prop.bbox

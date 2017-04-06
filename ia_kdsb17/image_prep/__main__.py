@@ -21,54 +21,54 @@ if not is_writeable(args.output_dir):
 labels = pd.read_csv(args.labels_csv, index_col=0)
 
 image_params = config.image_params
-train, test = config.image_prep_function(args.data_dir, labels, **image_params)
+stream = config.image_prep_function(args.data_dir, labels, **image_params)
 
-one_patient = next(train)
+one_patient = next(stream)
 
-h, w = one_patient[1].shape
-print("Image rows: {} cols: {}".format(h, w))
+c, h, w = one_patient[2].shape
+print("Image channels: {} rows: {} cols: {}".format(c, h, w))
 
-train = chain([one_patient], train)
-
-train_file = os.path.join(args.output_dir, "train_data.hdf5")
-labels_file = os.path.join(args.output_dir, "labels.hdf5")
-test_file = os.path.join(args.output_dir, "test_data.hdf5")
-test_id_file = os.path.join(args.output_dir, "test_id.csv")
-
-# train_dat = open_memmap(train_file, dtype='float32', mode='w+', shape=(-1, 1, h, w))
-# train_labels = open_memmap(labels_file, dtype='int', mode='w+', shape=(-1, 2))
-# test_dat = open_memmap(test_file, dtype='float32', mode='w+', shape=(-1, 1, h, w))
+stream = chain([one_patient], stream)
 
 tables_file = os.path.join(args.output_dir, 'image_data.h5')
 
 image_data_table = tables.open_file(tables_file, mode='w')
 image_atom = tables.Float32Atom()
 int_atom = tables.Int8Atom()
+id_atom = tables.StringAtom(len(one_patient[1]))
 
 train_data = image_data_table.create_earray(image_data_table.root, 'train_data', atom=image_atom, shape=(0, 1, h, w))
 train_labels = image_data_table.create_earray(image_data_table.root, 'train_labels', atom=int_atom, shape=(0, 2))
 test_data = image_data_table.create_earray(image_data_table.root, 'test_data', atom=image_atom, shape=(0, 1, h, w))
-test_ids = []
+test_ids = image_data_table.create_earray(image_data_table.root, 'test_ids', atom=id_atom, shape=(0,))
 
-for i, image in enumerate(train):
-    print("Writing training sample {}".format(i), end='\r')
-    train_data.append(image[1].reshape(1, 1, h, w))
-    label = labels.get_value(image[0], 'cancer')
-    if label == 0:
-        train_labels.append(np.array([1, 0]).reshape(1, 2))
-    else:
-        train_labels.append(np.array([0, 1]).reshape(1, 2))
+test_sample = 1
+train_sample = 1
+
+for item in stream:
+    dataset, idd, image = item
+
+    if dataset == 'train':
+        print("Writing training sample {}".format(train_sample), end='\r')
+        train_sample += 1
+
+        train_data.append(image.reshape(1, c, h, w))
+        label = labels.get_value(idd, 'cancer')
+
+        if label == 0:
+            train_labels.append(np.array([1, 0]).reshape(1, 2))
+        else:
+            train_labels.append(np.array([0, 1]).reshape(1, 2))
+    if dataset == 'test':
+        print("Writing test sample {}".format(test_sample), end='\r')
+
+        test_data.append(image.reshape(1, c, h, w))
+        test_ids.append(idd)
+
 print("", flush=True)
 
-for i, image in enumerate(test):
-    print("Writing test sample {}".format(i), end='\r')
-    test_data.append(image[1].reshape(1, 1, h, w))
-    test_ids.append(image[0])
-print("", flush=True)
 
 image_data_table.close()
 
-test_id_df = pd.DataFrame({'id': test_ids})
-test_id_df.to_csv(test_id_file, index=False)
 #
 # # print(labels.get_value('0015ceb851d7251b8f399e39779d1e7d', 'cancer'))

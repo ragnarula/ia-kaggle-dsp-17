@@ -18,38 +18,33 @@ def image_dirs(dir):
 
 
 # (path, patient, [image, image ...])
-def patient_image(path, patient):
+def list_images_for_patient(path, patient):
     full_path = os.path.join(path, patient)
     images = os.listdir(full_path)[1:]
     return path, patient, images
 
 
 # (path, patient, [dicom, dicom, dicom]
-def patient_dicoms(path, patient, images):
+def load_dicoms(path, patient, images):
     slices = map(lambda s: dicom.read_file(os.path.join(path, patient, s)), images)
     return path, patient, slices
 
 
-# (path, patient, [(z, pixels)])
-def patient_z_pixels(path, patient, dicoms):
-    slices = map(lambda s: (int(s.ImagePositionPatient[2]), s.pixel_array), dicoms)
-    return path, patient, slices
+def dicom_to_z_pixel(dicoms):
+    return map(lambda s: (int(s.ImagePositionPatient[2]), s.pixel_array), dicoms)
 
 
 # (path, patient, [(z, pixels)])
-def patient_z_cropped_pixels(path, patient, z_dicoms):
-    slices = starmap(lambda z, d: (z, d[90:422, :]), z_dicoms)
-    return path, patient, slices
+def crop_pixels(dicoms):
+    return map(lambda d: d[90:422, :])
 
 
 # (path, patient, [(z, pixels)])
-def patient_z_pixels_sorted(path, patient, z_dicoms):
-    slices = iter(sorted(z_dicoms, key=lambda x: x[0]))
-    return path, patient, slices
+def sort_images(z_dicoms):
+    return iter(sorted(z_dicoms, key=lambda x: x[0]))
 
 
-def patient_pixels_list(path, patient, z_dicoms):
-    # print(len(list(z_dicoms)))
+def patient_pixel_tuples(path, patient, z_dicoms):
     return map(lambda x: (path, patient, x[1]), z_dicoms)
 
 
