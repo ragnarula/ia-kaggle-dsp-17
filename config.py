@@ -64,7 +64,10 @@ def unet_nodules(image_dir, labels_df, **kwargs):
     stream = starmap(lambda p, idd, im: (p, idd, unet.standardize(im)), stream)
     stream = starmap(lambda p, idd, im: (p, idd, unet.extract_roi(im)), stream)
     stream = filter(lambda x: x[2] is not None, stream)
-    stream = starmap(lambda p, idd, im: (p, idd, unet.get_nodule_mask_extractor(kwargs['weights_file'])(im)), stream)
+
+    extractor = unet.get_nodule_mask_extractor(kwargs['weights_file'])
+
+    stream = starmap(lambda p, idd, im: (p, idd, extractor(im)), stream)
     stream = filter(lambda x: x[2][1] is not None, stream)
     stream = starmap(lambda p, idd, im_msk: (p, idd, im_msk[0] * im_msk[1].reshape(512, 512)), stream)
     stream = starmap(lambda p, idd, im: (p, idd, resize(im, [256, 256], mode='constant')), stream)
