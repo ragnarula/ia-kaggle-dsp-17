@@ -172,11 +172,11 @@ def get_unet(img_rows, img_cols):
 
 
 def get_nodule_mask_extractor(weights_file):
+    model = get_unet(512, 512)
+    model.load_weights(weights_file)
 
     def extract_nodule_masks(image):
         rows, cols = image.shape
-        model = get_unet(rows, cols)
-        model.load_weights(weights_file)
         mask = model.predict(image.reshape(1, 1, rows, cols))
         return image, mask
 
